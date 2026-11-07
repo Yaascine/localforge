@@ -900,7 +900,13 @@ def main():
     # One writer per app-data directory, including across processes.
     from PySide6.QtCore import QLockFile
 
-    store = Store()
+    # Smoke checks must not contend with or modify a running user installation.
+    import tempfile
+
+    smoke_root = (
+        tempfile.TemporaryDirectory(prefix="localforge-smoke-") if "--smoke-test" in sys.argv else None
+    )
+    store = Store(Path(smoke_root.name)) if smoke_root else Store()
     lock = QLockFile(str(store.root / "application.lock"))
     lock.setStaleLockTime(0)
     if not lock.tryLock(100):
@@ -916,6 +922,8 @@ def main():
         QTimer.singleShot(1500, window.close)
     result = app.exec()
     lock.unlock()
+    if smoke_root:
+        smoke_root.cleanup()
     return result
 
 
