@@ -1,30 +1,42 @@
 # LocalForge
 
-A Python/PySide6 desktop installer for a private OpenClaw environment and local GGUF inference. The source, native GUI, installation backends, download manager, tests, and packaging scripts are implemented here.
+A setup-and-launch script for OpenClaw with a local GGUF model, plus an optional desktop setup manager. The script opens OpenClaw’s actual browser interface after checking a real model reply.
 
 **Release status: engineering preview, not a production-certified universal installer.** macOS ARM64 is the locally exercised platform. Windows, Intel macOS and Linux have implementation/build targets but require native validation. The full acceptance checklist in the request is not yet satisfied. See [validation and limitations](docs/VALIDATION.md).
 
 ![LocalForge welcome screen](docs/welcome.png)
 
-## Download and install on macOS
+## Set up and open OpenClaw (recommended)
 
-[Download LocalForge 0.1.2 for Apple Silicon Macs (.dmg)](https://github.com/Yaascine/localforge/releases/download/v0.1.2/LocalForge-0.1.2-macos-arm64.dmg)
+Quit the LocalForge desktop app first. On your Mac, paste this into Terminal:
 
-This engineering preview is for Apple Silicon Macs (M-series chips). It includes Python and Qt; you do not need to install Python separately. Windows, Linux and Intel Mac installers are not included in this release.
+```sh
+curl -fL https://github.com/Yaascine/localforge/releases/download/v0.1.3/Setup-OpenClaw.command -o "$HOME/Setup-OpenClaw.command" && bash "$HOME/Setup-OpenClaw.command"
+```
 
-1. Download the DMG, open it, and drag LocalForge into Applications.
-2. Launch LocalForge. The preview is ad-hoc signed, not Developer ID signed or notarized. macOS may require approval in System Settings → Privacy & Security.
-3. Follow the wizard to check hardware, review and approve runtime installation, select a supported Hugging Face GGUF model, and run verification.
+The script installs a private Python environment, installs/reuses Node.js, OpenClaw and your selected local inference backend, reuses your downloaded model, configures OpenClaw, checks a real agent reply, and opens **OpenClaw's own authenticated browser chat interface**. No LocalForge chat panel or DMG is involved. First-time users without a saved model are asked for a Hugging Face URL and file selection. Invoking the setup script authorizes the displayed runtime installation plan.
 
-Internet access is required to download runtimes and model weights; these are not bundled in the DMG. Closing LocalForge stops its managed services.
+Keep the terminal open while chatting. Press Ctrl+C to stop. Next time run:
 
-[Release notes, source archive and SHA-256 checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.2)
+```sh
+bash "$HOME/Setup-OpenClaw.command"
+```
 
-## Chat with your installed model
+To choose a different model, pass `--model-url URL --file FILENAME.gguf`. Your existing data is retained. The script uses the same LocalForge application-data directory and does not overwrite another OpenClaw profile. It preserves the existing restricted tool policy; full shell/computer control is not enabled. A model that rejects tools is retried in OpenClaw with tools disabled.
 
-Open **Chat & dashboard**, type a message and click **Send message**. Direct chat uses the local backend independently of OpenClaw/tool verification. If an earlier version downloaded and registered the model but failed its response test, the saved candidate is reusable without downloading again. Conversation history stays in memory until cleared or the app exits.
+**Windows:** download [Setup-OpenClaw.ps1](https://github.com/Yaascine/localforge/releases/download/v0.1.3/Setup-OpenClaw.ps1), then run it in PowerShell:
 
-Generation allows up to 30 minutes per request on slow machines. The initial output budget defaults to 4,096 tokens and is adjustable; a reasoning-only or token-limited empty response gets one retry with twice that budget. Thinking is disabled where the backend supports it. Empty final responses remain explicit failures, but do not discard the installed model.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\Downloads\Setup-OpenClaw.ps1"
+```
+
+The policy override applies only to this PowerShell process. Windows and Linux bootstrap paths are provided but not locally validated; the tested host is macOS ARM64. Both scripts verify their pinned uv download and the release source archive before executing them. Model downloads retain published SHA-256 verification. RAM estimates do not gate setup.
+
+[Release notes, scripts, source and checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.3)
+
+## Earlier desktop preview
+
+The [0.1.2 Apple Silicon DMG](https://github.com/Yaascine/localforge/releases/download/v0.1.2/LocalForge-0.1.2-macos-arm64.dmg) remains available for the optional setup-manager GUI. Version 0.1.3 is a script release; use the script above for the OpenClaw interface. The earlier DMG is not notarized.
 
 ## Run from source
 

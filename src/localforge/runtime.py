@@ -410,7 +410,7 @@ class Runtime:
         self.stop("openclaw")
         raise ForgeError("OpenClaw gateway health check timed out.")
 
-    def agent_turn(self, message, session):
+    def agent_turn(self, message, session, timeout=180):
         raw = run(
             self.installer.claw()
             + [
@@ -423,10 +423,10 @@ class Runtime:
                 "off",
                 "--json",
                 "--timeout",
-                "180",
+                str(timeout),
             ],
             env=self.env(),
-            timeout=210,
+            timeout=timeout + 30,
             log=self.log,
         )
         data = json.loads(raw)
