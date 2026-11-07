@@ -150,7 +150,16 @@ def main(argv=None):
         action="store_true",
         help="Run the real readiness checks then stop without opening a browser",
     )
+    parser.add_argument("--install-app", action="store_true")
     args = parser.parse_args(argv)
+    if args.install_app:
+        from .desktop import install_launcher
+        import subprocess
+
+        bundle = install_launcher()
+        print("Installed application: " + str(bundle))
+        subprocess.run(["open", str(bundle)], check=True)
+        return 0
     app = QCoreApplication.instance() or QCoreApplication([])
     store = Store(args.root)
     lock = QLockFile(str(store.root / "application.lock"))

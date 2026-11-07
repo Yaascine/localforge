@@ -6,6 +6,16 @@ A setup-and-launch script for OpenClaw with a local GGUF model, plus an optional
 
 ![LocalForge welcome screen](docs/welcome.png)
 
+## Install the macOS application icon
+
+After the model setup, stop the running setup terminal with Ctrl+C and quit LocalForge. Run:
+
+```sh
+curl -fL https://github.com/Yaascine/localforge/releases/download/v0.1.4/Setup-OpenClaw.command -o "$HOME/Setup-OpenClaw.command" && bash "$HOME/Setup-OpenClaw.command" --install-app
+```
+
+This creates **~/Applications/OpenClaw Local.app** and opens it. Keep it in the Dock for future launches. Clicking the icon starts Ollama, loads the saved local model, starts OpenClaw, and embeds OpenClaw's real Control UI in its own desktop window. No Terminal or browser tab is needed for later launches. Closing the window stops its managed runtimes. The launcher uses its private installed Python environment; retain the setup cache in `~/.local/share/localforge-setup/0.1.4`. This is a LocalForge desktop wrapper around real OpenClaw, not an official OpenClaw desktop distribution. The icon installer currently supports macOS only.
+
 ## Set up and open OpenClaw (recommended)
 
 Quit the LocalForge desktop app first. On your Mac, paste this into Terminal:

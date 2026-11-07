@@ -1,7 +1,7 @@
 #!/bin/bash
 # Installs missing prerequisites, reuses your model, and opens OpenClaw itself.
 set -euo pipefail
-VERSION=0.1.3
+VERSION=0.1.4
 BASE="https://github.com/Yaascine/localforge/releases/download/v$VERSION"
 CACHE="${XDG_DATA_HOME:-$HOME/.local/share}/localforge-setup/$VERSION"
 mkdir -p "$CACHE"

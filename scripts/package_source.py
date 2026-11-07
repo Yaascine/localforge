@@ -7,7 +7,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
-archive = dist / "LocalForge-0.1.3-source.zip"
+archive = dist / "LocalForge-0.1.4-source.zip"
 allowed = {
     "src",
     "tests",
@@ -40,7 +40,7 @@ with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslev
 lines = []
 for path in sorted(dist.iterdir()):
     if path.is_file() and (
-        ("0.1.3" in path.name and path.suffix in (".dmg", ".exe", ".deb", ".zip"))
+        ("0.1.4" in path.name and path.suffix in (".dmg", ".exe", ".deb", ".zip"))
         or path.name in ("Setup-OpenClaw.command", "Setup-OpenClaw.ps1")
     ):
         with path.open("rb") as file:

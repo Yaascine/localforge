@@ -1,6 +1,6 @@
 # Run with PowerShell. Installs privately and opens the real OpenClaw UI.
 $ErrorActionPreference = 'Stop'
-$Version = '0.1.3'
+$Version = '0.1.4'
 $Base = "https://github.com/Yaascine/localforge/releases/download/v$Version"
 $Cache = Join-Path $env:LOCALAPPDATA "LocalForge-Setup\$Version"
 New-Item -ItemType Directory -Force -Path $Cache | Out-Null
