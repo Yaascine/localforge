@@ -1,0 +1,19 @@
+LocalForge uses Qt/PySide6 6.10.2 under the LGPLv3.
+Copyright The Qt Company Ltd. and other contributors.
+
+Qt libraries are dynamically linked and may be replaced with compatible builds.
+Reverse engineering for debugging modifications to those libraries is permitted.
+This application does not impose additional restrictions on those rights.
+
+Corresponding upstream source:
+https://download.qt.io/official_releases/qt/6.10/6.10.2/single/
+https://code.qt.io/cgit/pyside/pyside-setup.git/tag/?h=v6.10.2
+https://code.qt.io/cgit/qt/qtbase.git/tag/?h=v6.10.2
+
+License information:
+https://doc.qt.io/qtforpython-6/licenses.html
+https://doc.qt.io/qt-6/licenses-used-in-qt.html
+
+This engineering-preview build is not a certified public distribution.
+Release maintainers must retain corresponding-source availability and all
+applicable notices for the exact libraries redistributed.

@@ -1,0 +1,11 @@
+{
+  "inference": true,
+  "agent": true,
+  "tools": true,
+  "inference_reply": "\"Hello!\"",
+  "gateway": true,
+  "detail": "Workspace nonce returned and read tool result recorded.",
+  "unauthenticated_api_rejected": true,
+  "engine_version": "b12182",
+  "test_model": "unsloth/Qwen3-0.6B-GGUF / Qwen3-0.6B-Q4_K_M.gguf"
+}

@@ -1,0 +1,21 @@
+{
+  "inference": true,
+  "agent": true,
+  "tools": false,
+  "inference_reply": "Hi there!",
+  "gateway": true,
+  "agent_reply": "Hi! How can I assist you today? \ud83d\ude0a",
+  "detail": "Tool verification failed; all tools are disabled for this model. A completed read tool action could not be verified.",
+  "versions": {
+    "installed_Node.js": "v26.13.0",
+    "installed_OpenClaw": "2026.11.1",
+    "installed_ollama": "v0.40.15",
+    "installed_llama.cpp": null
+  },
+  "test_model": {
+    "repo": "unsloth/Qwen3-0.6B-GGUF",
+    "revision": "50968a4468ef4233ed78cd7c3de230dd1d61a56b",
+    "file": "Qwen3-0.6B-Q4_K_M.gguf",
+    "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a"
+  }
+}
