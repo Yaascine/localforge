@@ -80,3 +80,12 @@ Development runtime/model downloads remain under ignored `.test-runtime`. Ollama
 - Browsing is available before runtime setup, and the first supported model file is selected. Vision projector companions are identified separately from model weights.
 - Live metadata discovery succeeded for the user's exact `gguf/Qwen3.5-4B-GGUF/tree/main?utm_source=chatgpt.com` URL: all six single-file model variants were listed; the mmproj companion was excluded as a main model.
 - 86 tests passed, 1 opt-in live test skipped; Ruff F checks passed. The Qwen3.5 weights were not downloaded or inference-tested during this fix. Backend allocation and architecture errors remain possible.
+
+
+## 0.1.2 direct chat and empty-response recovery
+
+- Added a direct local chat panel with conversation history, adjustable output budget and inline recoverable errors. It uses the saved candidate after a failed verification without downloading again and does not require a healthy OpenClaw gateway.
+- Increased the default output budget from 512 to 4,096. Reasoning-only/token-limited empty responses get one retry at twice the initial budget. Ollama thinking is disabled when supported (including capabilities-only metadata); llama.cpp receives enable_thinking=false. Reasoning is never reported as a final answer.
+- Failed inference verification preserves the selected model and records an explicit failure instead of abandoning activation state. Start does not launch an unverified gateway.
+- 91 tests passed, 1 opt-in live test skipped; Ruff F checks passed. Regression coverage includes reasoning-only responses, request options, model retention and actual chat UI message history.
+- Separate real direct-chat checks with the existing Qwen3-0.6B fixture returned text from both Ollama 0.40.15 and llama.cpp b12182. This is not a claim to have reproduced or validated the user's Qwen3.5-4B inference on their other computer.

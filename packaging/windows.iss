@@ -1,12 +1,12 @@
 [Setup]
 AppName=LocalForge
-AppVersion=0.1.1
+AppVersion=0.1.2
 AppId=LocalForge.Installer
 DefaultDirName={localappdata}\Programs\LocalForge
 DefaultGroupName=LocalForge
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=LocalForge-0.1.1-windows-setup
+OutputBaseFilename=LocalForge-0.1.2-windows-setup
 Compression=lzma2
 SolidCompression=yes
 UninstallDisplayIcon={app}\LocalForge.exe

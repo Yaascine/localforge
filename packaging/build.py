@@ -59,7 +59,7 @@ if system == "Darwin":
     stage.mkdir(parents=True)
     shutil.copytree(dist / "LocalForge.app", stage / "LocalForge.app", symlinks=True)
     (stage / "Applications").symlink_to("/Applications")
-    output = dist / f"LocalForge-0.1.1-macos-{platform.machine()}.dmg"
+    output = dist / f"LocalForge-0.1.2-macos-{platform.machine()}.dmg"
     output.unlink(missing_ok=True)
     subprocess.run(
         [
@@ -92,7 +92,7 @@ elif system == "Linux":
     shutil.copytree(dist / "LocalForge", app)
     (stage / "DEBIAN").mkdir()
     (stage / "DEBIAN/control").write_text(f"""Package: localforge
-Version: 0.1.1
+Version: 0.1.2
 Section: utils
 Priority: optional
 Architecture: {arch}
@@ -110,6 +110,6 @@ Categories=Utility;
 Terminal=false
 """)
     subprocess.run(
-        ["dpkg-deb", "--build", "--root-owner-group", str(stage), str(dist / f"localforge_0.1.1_{arch}.deb")],
+        ["dpkg-deb", "--build", "--root-owner-group", str(stage), str(dist / f"localforge_0.1.2_{arch}.deb")],
         check=True,
     )

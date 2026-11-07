@@ -120,7 +120,7 @@ class Window(QMainWindow):
                 "05   Choose your model",
                 "06   Verification",
                 "07   Remote access",
-                "08   Dashboard",
+                "08   Chat & dashboard",
                 "        Settings",
                 "        Diagnostics",
             ]
@@ -326,7 +326,7 @@ class Window(QMainWindow):
                 lambda: self.task(self.runtime.restore_previous, self.show_verification),
             ),
             button("Optional remote access", lambda: self.go(6)),
-            button("Open dashboard", lambda: self.go(7)),
+            button("Chat with model", lambda: self.go(7), True),
         )
 
         body = self.page(
@@ -365,12 +365,35 @@ class Window(QMainWindow):
         body.addStretch()
 
         body = self.page(
-            "Your local control room.",
-            "Live process status and measured memory. Verification results are labeled as last-run results.",
+            "Talk to your model.",
+            "Direct local chat. Runtime controls and verification details are below.",
         )
         self.dashboard = QTextEdit()
         self.dashboard.setReadOnly(True)
-        self.dashboard.setMinimumHeight(350)
+        self.dashboard.setMinimumHeight(140)
+        self.dashboard.setMaximumHeight(180)
+        body.addWidget(label("Chat directly with your model", "cardTitle"))
+        body.addWidget(
+            label("Works independently of OpenClaw verification. Replies can take time on slower machines.")
+        )
+        self.chat_history = []
+        self.chat_model_key = None
+        self.chat_output = QTextEdit()
+        self.chat_output.setReadOnly(True)
+        self.chat_output.setMinimumHeight(230)
+        body.addWidget(self.chat_output)
+        self.chat_input = QLineEdit()
+        self.chat_input.setPlaceholderText("Type a message…")
+        self.chat_input.returnPressed.connect(self.send_chat)
+        body.addWidget(self.chat_input)
+        self.chat_tokens = QSpinBox()
+        self.chat_tokens.setRange(512, 32768)
+        self.chat_tokens.setSingleStep(512)
+        self.chat_tokens.setValue(4096)
+        form = QFormLayout()
+        form.addRow("Output-token limit", self.chat_tokens)
+        body.addLayout(form)
+        self.row(body, button("Send message", self.send_chat, True), button("Clear chat", self.clear_chat))
         body.addWidget(self.dashboard)
         self.row(
             body,
@@ -685,6 +708,49 @@ class Window(QMainWindow):
             self.show_verification,
         )
 
+    def clear_chat(self):
+        if self.busy:
+            return
+        self.chat_history = []
+        self.chat_output.clear()
+
+    def send_chat(self):
+        if self.busy or not self.chat_input.text().strip():
+            return
+        candidate = (
+            self.store.state.get("candidate")
+            or self.store.state.get("active_model")
+            or self.store.state.get("downloaded")
+            or {}
+        )
+        key = (candidate.get("sha256"), candidate.get("engine"))
+        if key != self.chat_model_key:
+            self.clear_chat()
+            self.chat_model_key = key
+        prompt = self.chat_input.text().strip()
+        messages = self.chat_history + [{"role": "user", "content": prompt}]
+        tokens = self.chat_tokens.value()
+        self.chat_output.insertPlainText("You: " + prompt + "\n\n")
+        self.chat_input.clear()
+
+        def work():
+            try:
+                return {"reply": self.runtime.chat(messages, tokens)}
+            except Exception as exc:
+                return {"error": redact(str(exc))}
+
+        def done(result):
+            if "error" in result:
+                self.chat_output.insertPlainText("Request failed: " + result["error"] + "\n\n")
+                self.chat_input.setText(prompt)
+            else:
+                reply = result["reply"]
+                self.chat_history = messages + [{"role": "assistant", "content": reply}]
+                self.chat_output.insertPlainText("Model: " + reply + "\n\n")
+
+        self.task(work, done)
+        self.status.setText("Working… Waiting for the model's reply; larger models may take several minutes.")
+
     def show_dashboard(self, _=None):
         self.refresh_dashboard()
         self.go(7)
@@ -712,7 +778,7 @@ class Window(QMainWindow):
             ", ".join(g.get("name", "Unknown") for g in hardware.get("gpus", []))
             or "Run System check to inspect graphics"
         )
-        model = self.store.state.get("active_model") or {}
+        model = self.store.state.get("candidate") or self.store.state.get("active_model") or {}
         download = self.store.state.get("downloaded") or {}
         verification = self.store.state.get("verification", {})
         model_name = (

@@ -78,3 +78,25 @@ def test_download_proceeds_when_model_exceeds_ram(qtbot, tmp_path, monkeypatch):
     window.download_model()
     assert fetched == [repo.download_url(file)]
     assert store.state["downloaded"]["filename"] == "large.gguf"
+
+
+def test_chat_sends_prompt_and_keeps_conversation(qtbot, tmp_path, monkeypatch):
+    window = Window(Store(tmp_path))
+    qtbot.addWidget(window)
+    calls = []
+
+    def chat(messages, tokens):
+        calls.append((messages, tokens))
+        return "Hello there"
+
+    monkeypatch.setattr(window.runtime, "chat", chat)
+    monkeypatch.setattr(window, "task", lambda work, done: done(work()))
+    window.chat_input.setText("Hi")
+    window.send_chat()
+    assert calls[0][0] == [{"role": "user", "content": "Hi"}]
+    assert "Model: Hello there" in window.chat_output.toPlainText()
+    window.chat_input.setText("Again")
+    window.send_chat()
+    assert len(calls[1][0]) == 3
+    window.clear_chat()
+    assert not window.chat_history

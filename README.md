@@ -8,7 +8,7 @@ A Python/PySide6 desktop installer for a private OpenClaw environment and local 
 
 ## Download and install on macOS
 
-[Download LocalForge 0.1.1 for Apple Silicon Macs (.dmg)](https://github.com/Yaascine/localforge/releases/download/v0.1.1/LocalForge-0.1.1-macos-arm64.dmg)
+[Download LocalForge 0.1.2 for Apple Silicon Macs (.dmg)](https://github.com/Yaascine/localforge/releases/download/v0.1.2/LocalForge-0.1.2-macos-arm64.dmg)
 
 This engineering preview is for Apple Silicon Macs (M-series chips). It includes Python and Qt; you do not need to install Python separately. Windows, Linux and Intel Mac installers are not included in this release.
 
@@ -18,7 +18,13 @@ This engineering preview is for Apple Silicon Macs (M-series chips). It includes
 
 Internet access is required to download runtimes and model weights; these are not bundled in the DMG. Closing LocalForge stops its managed services.
 
-[Release notes, source archive and SHA-256 checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.1)
+[Release notes, source archive and SHA-256 checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.2)
+
+## Chat with your installed model
+
+Open **Chat & dashboard**, type a message and click **Send message**. Direct chat uses the local backend independently of OpenClaw/tool verification. If an earlier version downloaded and registered the model but failed its response test, the saved candidate is reusable without downloading again. Conversation history stays in memory until cleared or the app exits.
+
+Generation allows up to 30 minutes per request on slow machines. The initial output budget defaults to 4,096 tokens and is adjustable; a reasoning-only or token-limited empty response gets one retry with twice that budget. Thinking is disabled where the backend supports it. Empty final responses remain explicit failures, but do not discard the installed model.
 
 ## Run from source
 

@@ -278,3 +278,67 @@ def test_reinstall_staging_preserves_model_but_invalidates_readiness(tmp_path, m
     assert store.state["active_model"] == candidate
     assert store.state["verification"] == {}
     assert write.call_args.args[0]["agents"]["defaults"]["model"]["primary"] == "ollama/existing"
+
+
+@respx.mock
+def test_reasoning_only_retries_and_disables_thinking(tmp_path):
+    rt = Runtime(Store(tmp_path), vault=Mock())
+    route = respx.post("http://127.0.0.1:11435/api/chat").mock(
+        side_effect=[
+            httpx.Response(
+                200, json={"message": {"content": "", "thinking": "reasoning"}, "done_reason": "length"}
+            ),
+            httpx.Response(200, json={"message": {"content": "Hello"}}),
+        ]
+    )
+    c = {"engine": "ollama", "model": "local", "context": 16384, "capabilities": ["thinking"]}
+    assert rt.infer(c) == "Hello"
+    payloads = [json.loads(call.request.content) for call in route.calls]
+    assert [p["options"]["num_predict"] for p in payloads] == [4096, 8192]
+    assert all(p["think"] is False for p in payloads)
+
+
+@respx.mock
+def test_llama_reasoning_only_does_not_count_as_answer(tmp_path):
+    rt = Runtime(Store(tmp_path), vault=Mock())
+    route = respx.post("http://127.0.0.1:8081/v1/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {"message": {"content": "", "reasoning_content": "reasoning"}, "finish_reason": "length"}
+                ]
+            },
+        )
+    )
+    with pytest.raises(ForgeError, match="still installed"):
+        rt.infer({"engine": "llama.cpp", "model": "local", "context": 16384})
+    assert route.call_count == 2
+    assert json.loads(route.calls[0].request.content)["chat_template_kwargs"] == {"enable_thinking": False}
+
+
+def test_empty_verification_preserves_model_for_chat(tmp_path, monkeypatch):
+    rt = Runtime(Store(tmp_path), vault=Mock())
+    candidate = {"engine": "ollama", "model": "local", "context": 16384}
+    monkeypatch.setattr(rt, "stop", Mock())
+    monkeypatch.setattr(rt, "register", lambda *a: candidate)
+    monkeypatch.setattr(rt, "infer", Mock(side_effect=ForgeError("No final text response")))
+    report = rt.activate(tmp_path / "model.gguf", "a" * 64, "ollama", 16384)
+    assert not report["inference"]
+    assert rt.store.state["active_model"] == candidate
+    assert "No final text" in report["detail"]
+
+
+def test_chat_uses_candidate_after_failed_verification(tmp_path, monkeypatch):
+    rt = Runtime(Store(tmp_path), vault=Mock())
+    candidate = {"engine": "ollama", "model": "local", "context": 16384}
+    rt.store.update(candidate=candidate, verification={"inference": False})
+    process = Mock()
+    process.poll.return_value = None
+    rt.processes["ollama"] = process
+    infer = Mock(return_value="Actual reply")
+    monkeypatch.setattr(rt, "infer", infer)
+    messages = [{"role": "user", "content": "Hello"}]
+    assert rt.chat(messages, 2048) == "Actual reply"
+    infer.assert_called_once_with(candidate, messages, 2048)
+    rt.processes.clear()

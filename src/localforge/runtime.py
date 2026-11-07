@@ -224,37 +224,83 @@ class Runtime:
         )
         return self.store.state["candidate"]
 
-    def infer(self, candidate):
+    def infer(self, candidate, messages=None, max_tokens=4096):
         engine, model = candidate["engine"], candidate["model"]
-        with httpx.Client(timeout=300, trust_env=False) as c:
-            messages = [{"role": "user", "content": "Say hello in one short sentence."}]
-            if engine == "ollama":
-                r = c.post(
-                    f"http://127.0.0.1:{self.ollama_port}/api/chat",
-                    json={
-                        "model": model,
-                        "messages": messages,
-                        "stream": False,
-                        "options": {"num_ctx": candidate["context"], "num_predict": 512},
-                        **({"think": False} if False in candidate.get("thinking_values", []) else {}),
-                    },
+        messages = messages or [{"role": "user", "content": "Say hello in one short sentence."}]
+        # Thinking models may spend the whole generation budget before producing content.
+        # Never present reasoning-only output as a successful final answer.
+        with httpx.Client(timeout=httpx.Timeout(1800, connect=10), trust_env=False) as c:
+            for budget in (max_tokens, max_tokens * 2):
+                if engine == "ollama":
+                    values = candidate.get("thinking_values", [])
+                    thinking = (
+                        {"think": False}
+                        if False in values or (not values and "thinking" in candidate.get("capabilities", []))
+                        else ({"think": "low"} if "low" in values else {})
+                    )
+                    r = c.post(
+                        f"http://127.0.0.1:{self.ollama_port}/api/chat",
+                        json={
+                            "model": model,
+                            "messages": messages,
+                            "stream": False,
+                            "options": {"num_ctx": candidate["context"], "num_predict": budget},
+                            **thinking,
+                        },
+                    )
+                else:
+                    r = c.post(
+                        f"http://127.0.0.1:{self.llama_port}/v1/chat/completions",
+                        headers={"Authorization": "Bearer " + self.engine_token},
+                        json={
+                            "model": model,
+                            "messages": messages,
+                            "max_tokens": budget,
+                            "stream": False,
+                            "chat_template_kwargs": {"enable_thinking": False},
+                        },
+                    )
+                r.raise_for_status()
+                data = r.json()
+                if data.get("error"):
+                    raise ForgeError(str(data["error"]))
+                choice = (data.get("choices") or [{}])[0]
+                message = (data.get("message") if engine == "ollama" else choice.get("message")) or {}
+                reply = message.get("content")
+                if isinstance(reply, str) and reply.strip():
+                    return reply
+                reasoning = (
+                    message.get("thinking") or message.get("reasoning_content") or message.get("reasoning")
                 )
-            else:
-                r = c.post(
-                    f"http://127.0.0.1:{self.llama_port}/v1/chat/completions",
-                    headers={"Authorization": "Bearer " + self.engine_token},
-                    json={"model": model, "messages": messages, "max_tokens": 512, "stream": False},
+                reason = data.get("done_reason") if engine == "ollama" else choice.get("finish_reason")
+                if budget == max_tokens and (reasoning or reason == "length"):
+                    self.log("Model returned no final answer; retrying with a larger output budget.")
+                    continue
+                raise ForgeError(
+                    "No final text response was returned"
+                    + (
+                        " after reasoning exhausted the output budget"
+                        if reasoning or reason == "length"
+                        else ""
+                    )
+                    + ". The model is still installed. Use Chat to try another prompt or raise the output-token limit."
                 )
-            r.raise_for_status()
-            data = r.json()
-            reply = (
-                data.get("message", {}).get("content")
-                if engine == "ollama"
-                else data["choices"][0]["message"].get("content")
+
+    def chat(self, messages, max_tokens=4096):
+        candidate = self.store.state.get("candidate") or self.store.state.get("active_model")
+        if not candidate:
+            downloaded = self.store.state.get("downloaded")
+            if not downloaded:
+                raise ForgeError("Download a model first.")
+            candidate = self.register(
+                Path(downloaded["path"]), downloaded["sha256"], downloaded["engine"], downloaded["context"]
             )
-            if not isinstance(reply, str) or not reply.strip():
-                raise ForgeError("Model loaded but did not produce a text response.")
-            return reply
+        process = self.processes.get(candidate["engine"])
+        if not process or process.poll() is not None:
+            if digest(Path(candidate["path"])) != candidate["sha256"]:
+                raise ForgeError("Model integrity verification failed. Download it again.")
+            self.start_engine(candidate["engine"], Path(candidate["path"]), candidate["context"])
+        return self.infer(candidate, messages, max_tokens)
 
     def config(self, candidate=None):
         config = {
@@ -483,9 +529,10 @@ class Runtime:
         previous = self.store.state.get("active_model")
         self.store.update(verification={"inference": False, "agent": False, "tools": False})
         candidate = self.register(path, sha, engine, context)
-        reply = self.infer(candidate)
-        report = {"inference": True, "agent": False, "tools": False, "inference_reply": reply}
+        report = {"inference": False, "agent": False, "tools": False}
         try:
+            reply = self.infer(candidate)
+            report.update(inference=True, inference_reply=reply)
             if candidate["context"] < 16384:
                 candidate["tools_enabled"] = False
                 self.write_config(self.config(candidate))
@@ -513,15 +560,15 @@ class Runtime:
         )
 
     def start(self):
-        model = self.store.state.get("active_model")
+        model = self.store.state.get("candidate") or self.store.state.get("active_model")
         if not model:
-            raise ForgeError("Select and verify a model first.")
+            raise ForgeError("Download a model first, then send a message from Chat.")
         if digest(Path(model["path"])) != model["sha256"]:
             raise ForgeError(
                 "The saved model failed integrity verification. Download it again before starting."
             )
         self.start_engine(model["engine"], Path(model["path"]), model["context"])
-        if model["context"] < 16384:
+        if model["context"] < 16384 or not self.store.state.get("verification", {}).get("gateway"):
             return self.status()
         self.start_gateway()
         return self.status()
@@ -533,7 +580,7 @@ class Runtime:
                 for name, p in self.processes.items()
             },
             "verification": self.store.state.get("verification", {}),
-            "model": self.store.state.get("active_model"),
+            "model": self.store.state.get("candidate") or self.store.state.get("active_model"),
             "memory": {},
             "engine_models": [],
         }

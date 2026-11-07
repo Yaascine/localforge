@@ -7,7 +7,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
-archive = dist / "LocalForge-0.1.1-source.zip"
+archive = dist / "LocalForge-0.1.2-source.zip"
 allowed = {
     "src",
     "tests",
@@ -39,7 +39,7 @@ with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslev
         output.writestr(info, path.read_bytes())
 lines = []
 for path in sorted(dist.iterdir()):
-    if path.is_file() and "0.1.1" in path.name and path.suffix in (".dmg", ".exe", ".deb", ".zip"):
+    if path.is_file() and "0.1.2" in path.name and path.suffix in (".dmg", ".exe", ".deb", ".zip"):
         with path.open("rb") as file:
             digest = hashlib.file_digest(file, "sha256").hexdigest()
         lines.append(digest + "  " + path.name)
