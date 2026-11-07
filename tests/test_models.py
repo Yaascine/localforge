@@ -51,6 +51,7 @@ def test_repository_discovery():
                     {"rfilename": "model-Q4_K_M.gguf", "lfs": {"sha256": sha, "size": 1000}},
                     {"rfilename": "model-00001-of-00002.gguf", "lfs": {"sha256": sha, "size": 1000}},
                     {"rfilename": "model.safetensors", "size": 2000},
+                    {"rfilename": "mmproj-model-F16.gguf", "lfs": {"sha256": sha, "size": 500}},
                 ],
             },
         )
@@ -61,6 +62,8 @@ def test_repository_discovery():
     assert not repo.files[1].supported and not repo.files[2].supported
     assert "/resolve/" + ("b" * 40) + "/" in repo.download_url(repo.files[0])
     assert repo.license == "apache-2.0"
+    assert not repo.files[3].supported
+    assert "projector" in repo.files[3].reason
 
 
 @respx.mock
@@ -90,3 +93,24 @@ def test_memory_accounts_for_context_and_missing_metadata():
     assert estimate(file, repo, sys)["status"] == "Unknown"
     sys.disk_free = GiB
     assert estimate(file, repo, sys)["status"] == "Incompatible"
+
+
+def test_model_larger_than_ram_is_allowed_but_disk_shortage_is_not():
+    file = ModelFile("large.gguf", 32 * GiB, "a" * 64, "Q4_K_M", True, "")
+    repo = Repository(ModelSource("a/b"), "a" * 40, [file], "llama", "mit", False, {})
+    system = SystemInfo("Darwin", "", "arm64", "CPU", 8, 8 * GiB, GiB, 100 * GiB, 200 * GiB)
+    report = estimate(file, repo, system)
+    assert report["memory_low"] > system.ram_total
+    assert report["status"] == "Limited"
+    assert "loading are allowed" in " ".join(report["reasons"])
+    system.disk_free = GiB
+    assert estimate(file, repo, system)["status"] == "Incompatible"
+
+
+def test_shared_model_url_ignores_tracking_parameters():
+    assert parse_url(
+        "https://huggingface.co/gguf/Qwen3.5-4B-GGUF/tree/main?utm_source=chatgpt.com"
+    ) == ModelSource("gguf/Qwen3.5-4B-GGUF")
+    assert parse_url("https://huggingface.co/a/b/resolve/main/model.gguf?download=true") == ModelSource(
+        "a/b", "main", "model.gguf"
+    )

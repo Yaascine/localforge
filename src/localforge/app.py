@@ -282,8 +282,7 @@ class Window(QMainWindow):
         body.addWidget(self.model_url)
         self.row(
             body,
-            button("Analyze Model", self.analyze_model, True),
-            button("Browse Available Files", self.analyze_model),
+            button("Browse model files", self.analyze_model, True),
             button("Back", lambda: self.go(3)),
         )
         self.repo_info = label(
@@ -299,7 +298,9 @@ class Window(QMainWindow):
         self.files.setMinimumHeight(230)
         self.files.itemSelectionChanged.connect(self.file_selected)
         body.addWidget(self.files)
-        self.compat = label("Select a file to inspect memory and storage estimates.")
+        self.compat = label(
+            "Select a file, approve the download below, then click Download & verify. RAM estimates are advisory."
+        )
         body.addWidget(self.compat)
         self.model_consent = QCheckBox("I reviewed the license and approve downloading this exact file.")
         body.addWidget(self.model_consent)
@@ -550,14 +551,10 @@ class Window(QMainWindow):
         self.task(work, done)
 
     def enter_models(self):
-        if not self.store.state.get("infrastructure_ready"):
-            return self.error("Complete installation and validate OpenClaw before choosing a model.")
         self.go(4)
 
     def analyze_model(self):
-        if not self.store.state.get("infrastructure_ready"):
-            return self.error("Install and initialize the environment first.")
-        url = self.model_url.text()
+        url = self.model_url.text().strip()
 
         def work():
             try:
@@ -567,6 +564,8 @@ class Window(QMainWindow):
             return discover(url, token)
 
         def done(repo):
+            self.files.clearSelection()
+            self.files.setCurrentCell(-1, -1)
             self.repository = repo
             self.files.setRowCount(len(repo.files))
             self.model_consent.setChecked(False)
@@ -580,6 +579,10 @@ class Window(QMainWindow):
                     self.files.setItem(i, j, QTableWidgetItem(value))
                 if repo.source.file == f.name:
                     self.files.selectRow(i)
+            if repo.source.file is None:
+                first = next((i for i, f in enumerate(repo.files) if f.supported), None)
+                if first is not None:
+                    self.files.selectRow(first)
             if not repo.files:
                 self.compat.setText(
                     "No supported model weights were found. Choose a GGUF repository from the publisher."
@@ -599,7 +602,7 @@ class Window(QMainWindow):
             f = self.selection()
             if self.system is None:
                 self.compat.setText(
-                    "Run System check to calculate compatibility. Storage and memory are checked again before download."
+                    "Approve the selected file below, then click Download & verify. Disk space is checked before download; RAM estimates never block it."
                 )
                 return
             info = self.system

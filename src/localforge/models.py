@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 from pathlib import PurePosixPath
-from urllib.parse import quote, unquote, urlsplit
+from urllib.parse import parse_qsl, quote, unquote, urlsplit
 
 import httpx
 
@@ -39,11 +39,14 @@ def parse_url(url: str) -> ModelSource:
         or p.username
         or p.password
         or p.port
-        or p.query
+        or any(
+            not (key.startswith("utm_") or key == "download")
+            for key, _ in parse_qsl(p.query, keep_blank_values=True)
+        )
         or p.fragment
     ):
         raise ForgeError(
-            "Use an HTTPS huggingface.co model repository or resolve/blob file URL, without query parameters."
+            "Use an HTTPS huggingface.co model repository or resolve/blob file URL, without credentials or unsupported query parameters. Tracking and download parameters are ignored."
         )
     parts = unquote(p.path).strip("/").split("/")
     if len(parts) < 2 or any(not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", x) for x in parts[:2]):
@@ -130,10 +133,13 @@ def discover(url: str, token: str | None = None) -> Repository:
             sha = lfs.get("sha256")
             sha = sha if sha and re.fullmatch("[0-9a-f]{64}", sha) else None
             split = bool(re.search(r"-\d{5}-of-\d{5}\.gguf$", name))
-            ok = name.lower().endswith(".gguf") and not split and bool(sha)
+            projector = PurePosixPath(name).name.lower().startswith("mmproj")
+            ok = name.lower().endswith(".gguf") and not split and not projector and bool(sha)
             reason = (
                 "Single-file GGUF; architecture must be validated by the runtime."
                 if ok
+                else "Vision projector companion file; select the main model weights instead."
+                if projector
                 else "Split GGUF is not yet supported. Choose a single-file variant."
                 if split
                 else "No published SHA-256; verified download is unavailable."
@@ -185,14 +191,14 @@ def estimate(file: ModelFile, repo: Repository, system: SystemInfo, context=4096
     ]
     if not known:
         reasons.append("Missing architecture dimensions: KV cache uses a conservative allowance.")
-    if not file.supported or not file.size or storage > system.disk_free or low > system.ram_available:
+    if not file.supported or not file.size or storage > system.disk_free:
         status = "Incompatible"
-        reasons.append(
-            "Unsupported file, missing size, insufficient disk space, or estimated minimum exceeds available RAM."
-        )
+        reasons.append("Unsupported file, missing size, or insufficient disk space.")
     elif high > system.ram_available * 0.8:
         status = "Limited"
-        reasons.append("Reduce context or choose a smaller quantization. CPU offload may be slow.")
+        reasons.append(
+            "Memory estimate exceeds the available headroom. Download and loading are allowed; swapping may be very slow and the runtime may fail to allocate memory."
+        )
     return {
         "status": status,
         "memory_low": low,

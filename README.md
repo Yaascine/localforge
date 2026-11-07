@@ -8,7 +8,7 @@ A Python/PySide6 desktop installer for a private OpenClaw environment and local 
 
 ## Download and install on macOS
 
-[Download LocalForge 0.1.0 for Apple Silicon Macs (.dmg)](https://github.com/Yaascine/localforge/releases/download/v0.1.0/LocalForge-0.1.0-macos-arm64.dmg)
+[Download LocalForge 0.1.1 for Apple Silicon Macs (.dmg)](https://github.com/Yaascine/localforge/releases/download/v0.1.1/LocalForge-0.1.1-macos-arm64.dmg)
 
 This engineering preview is for Apple Silicon Macs (M-series chips). It includes Python and Qt; you do not need to install Python separately. Windows, Linux and Intel Mac installers are not included in this release.
 
@@ -18,7 +18,7 @@ This engineering preview is for Apple Silicon Macs (M-series chips). It includes
 
 Internet access is required to download runtimes and model weights; these are not bundled in the DMG. Closing LocalForge stops its managed services.
 
-[Release notes, source archive and SHA-256 checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.0)
+[Release notes, source archive and SHA-256 checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.1)
 
 ## Run from source
 
@@ -42,6 +42,7 @@ On macOS, open the DMG in `dist/`, drag LocalForge to Applications and launch it
 - Reviewable, version-pinned installation plans. Node is downloaded from nodejs.org with SHA-256 verification; OpenClaw is installed into a private npm prefix; Ollama and llama.cpp use digest-verified official release archives.
 - A separate OpenClaw state/config/workspace, with schema validation and backup/rollback on invalid configuration. Existing personal OpenClaw configuration is not overwritten.
 - Hugging Face model repository/direct file URLs, immutable revisions, file browsing, quantization discovery, license metadata and authenticated access through the OS credential store.
+- RAM estimates are advisory: models can be downloaded and loaded even when their estimated working set exceeds available RAM. Loading may still fail inside the selected backend.
 - Explicit memory estimates that account for context, KV cache dimensions when supplied, runtime overhead and disk duplication. Missing metadata produces an Unknown result; runtime load tests remain authoritative.
 - Streaming downloads, pause/resume, retry, space checks, SHA-256 verification and reuse of verified files. Cross-host redirects do not receive Hugging Face credentials.
 - Ollama GGUF registration and native API inference; llama.cpp GGUF loading and OpenAI-compatible API inference. Both run on loopback on dedicated ports.

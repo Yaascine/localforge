@@ -71,3 +71,12 @@ The initial 135M SmolLM2 model generated text but declares an 8K native context.
 `scripts/live_smoke.py` accepts an explicit URL, filename, engine and isolated root. `--install` authorizes its development runtime plan. Default tests never download a model or install AI runtimes.
 
 Development runtime/model downloads remain under ignored `.test-runtime`. Ollama initialized standard signing keys under `~/.ollama`; those shared files were not removed. No messaging account was connected and no external messages were sent.
+
+
+## 0.1.1 model-selection fix
+
+- RAM estimates no longer reject downloads or runtime activation. A regression test exercises the download flow with a 32 GiB model and only 1 GiB available RAM using mocked download/runtime operations.
+- Shared Hugging Face URLs accept and discard tracking (`utm_*`) and download parameters. Credentials and unsupported query parameters remain rejected.
+- Browsing is available before runtime setup, and the first supported model file is selected. Vision projector companions are identified separately from model weights.
+- Live metadata discovery succeeded for the user's exact `gguf/Qwen3.5-4B-GGUF/tree/main?utm_source=chatgpt.com` URL: all six single-file model variants were listed; the mmproj companion was excluded as a main model.
+- 86 tests passed, 1 opt-in live test skipped; Ruff F checks passed. The Qwen3.5 weights were not downloaded or inference-tested during this fix. Backend allocation and architecture errors remain possible.
