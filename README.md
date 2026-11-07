@@ -6,9 +6,27 @@ A Python/PySide6 desktop installer for a private OpenClaw environment and local 
 
 ![LocalForge welcome screen](docs/welcome.png)
 
-## Run
+## Download and install on macOS
+
+[Download LocalForge 0.1.0 for Apple Silicon Macs (.dmg)](https://github.com/Yaascine/localforge/releases/download/v0.1.0/LocalForge-0.1.0-macos-arm64.dmg)
+
+This engineering preview is for Apple Silicon Macs (M-series chips). It includes Python and Qt; you do not need to install Python separately. Windows, Linux and Intel Mac installers are not included in this release.
+
+1. Download the DMG, open it, and drag LocalForge into Applications.
+2. Launch LocalForge. The preview is ad-hoc signed, not Developer ID signed or notarized. macOS may require approval in System Settings → Privacy & Security.
+3. Follow the wizard to check hardware, review and approve runtime installation, select a supported Hugging Face GGUF model, and run verification.
+
+Internet access is required to download runtimes and model weights; these are not bundled in the DMG. Closing LocalForge stops its managed services.
+
+[Release notes, source archive and SHA-256 checksums](https://github.com/Yaascine/localforge/releases/tag/v0.1.0)
+
+## Run from source
+
+Install Git and uv, then:
 
 ```sh
+git clone https://github.com/Yaascine/localforge.git
+cd localforge
 uv sync --frozen --extra dev
 uv run localforge
 ```
